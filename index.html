@@ -1607,7 +1607,7 @@ async function carregarValidades() {
       if (dias !== null) {
         if (dias < 0) diasTexto = `<span style="color:var(--vermelho);font-weight:700">${Math.abs(dias)} dias atrás</span>`;
         else if (dias === 0) diasTexto = `<span style="color:var(--vermelho);font-weight:700">Hoje!</span>`;
-        else diasTexto = `<span style="color:${dias<=7?'var(--laranja)':dias<=30?'var(--amarelo)':'var(--verde)';};font-weight:600">${dias} dias</span>`;
+        else diasTexto = `<span style="color:${dias<=7?'var(--laranja)':dias<=30?'var(--amarelo)':'var(--verde)'};font-weight:600">${dias} dias</span>`;
       }
       const rowStyle = dias !== null && dias < 0 ? 'background:rgba(220,38,38,0.04)' : (dias !== null && dias <= 7 ? 'background:rgba(234,88,12,0.04)' : '');
       return `<tr style="${rowStyle}">
