@@ -1195,7 +1195,6 @@ async function carregarDashboard() {
     document.getElementById('d-qtd-mes').textContent = `${vendasMes.length} transações`;
     document.getElementById('d-produtos').textContent = produtos.length;
     document.getElementById('d-estoque-baixo').textContent = `${estBaixo} com estoque baixo`;
-    document.getElementById('d-ticket').textContent = fmt(ticket);
     document.getElementById('d-vencendo').textContent = vencendoBreve.length;
     document.getElementById('d-vencidos-sub').textContent = vencidos.length > 0 ? `⚠️ ${vencidos.length} já vencidos!` : 'produtos nos próx. 30 dias';
 
