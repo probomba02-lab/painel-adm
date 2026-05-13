@@ -810,29 +810,71 @@ textarea { resize: vertical; min-height: 70px; }
       </div>
     </div>
 
-    <!-- ====== CAIXA ====== -->
+    <!-- ====== CAIXA / TURNOS ====== -->
     <div class="page" id="page-caixa">
-      <div class="filtros">
-        <input type="date" id="caixa-data" onchange="carregarCaixa()">
-        <button class="btn btn-secondary" onclick="exportarCaixa()">⬇ Exportar</button>
+      <!-- CARDS DE STATUS -->
+      <div class="cards-grid" id="cards-turnos">
+        <div class="card verde"><div class="card-accent"></div><div class="card-top"><div><div class="card-label">Turno Atual (Aberto)</div></div><div class="card-icon-wrap">🟢</div></div><div class="card-val" id="ct-aberto">—</div><div class="card-sub" id="ct-aberto-sub">nenhum turno ativo</div></div>
+        <div class="card azul"><div class="card-accent"></div><div class="card-top"><div><div class="card-label">Turnos Hoje</div></div><div class="card-icon-wrap">📋</div></div><div class="card-val" id="ct-hoje">0</div><div class="card-sub" id="ct-hoje-sub">turnos registrados</div></div>
+        <div class="card amarelo"><div class="card-accent"></div><div class="card-top"><div><div class="card-label">Total Vendido Hoje</div></div><div class="card-icon-wrap">💵</div></div><div class="card-val" id="ct-total-hoje">R$ 0,00</div><div class="card-sub" id="ct-total-hoje-sub">soma dos turnos</div></div>
+        <div class="card laranja"><div class="card-accent"></div><div class="card-top"><div><div class="card-label">Média por Turno</div></div><div class="card-icon-wrap">📊</div></div><div class="card-val" id="ct-media">R$ 0,00</div><div class="card-sub">valor médio/turno</div></div>
       </div>
-      <div class="cards-grid">
-        <div class="card verde"><div class="card-accent"></div><div class="card-top"><div><div class="card-label">Dinheiro</div></div><div class="card-icon-wrap">💵</div></div><div class="card-val" id="c-dinheiro">R$ 0,00</div></div>
-        <div class="card azul"><div class="card-accent"></div><div class="card-top"><div><div class="card-label">PIX</div></div><div class="card-icon-wrap">📱</div></div><div class="card-val" id="c-pix">R$ 0,00</div></div>
-        <div class="card amarelo"><div class="card-accent"></div><div class="card-top"><div><div class="card-label">Débito</div></div><div class="card-icon-wrap">💳</div></div><div class="card-val" id="c-debito">R$ 0,00</div></div>
-        <div class="card vermelho"><div class="card-accent"></div><div class="card-top"><div><div class="card-label">Crédito</div></div><div class="card-icon-wrap">💳</div></div><div class="card-val" id="c-credito">R$ 0,00</div></div>
+
+      <!-- TURNO ABERTO ALERTA -->
+      <div id="alerta-turno-aberto" style="display:none"></div>
+
+      <!-- FILTROS -->
+      <div class="filtros" style="margin-bottom:20px">
+        <input type="date" id="filtro-turno-ini" onchange="carregarTurnos()">
+        <input type="date" id="filtro-turno-fim" onchange="carregarTurnos()">
+        <input type="text" id="filtro-turno-colab" placeholder="🔍 Colaborador..." oninput="carregarTurnos()" style="min-width:180px">
+        <select id="filtro-turno-status" onchange="carregarTurnos()">
+          <option value="">Todos os status</option>
+          <option value="fechado">Fechados</option>
+          <option value="aberto">Em aberto</option>
+        </select>
+        <button class="btn btn-secondary" onclick="exportarTurnos()">⬇ Exportar CSV</button>
+        <button class="btn btn-secondary" onclick="carregarTurnos()">↻ Atualizar</button>
       </div>
+
+      <!-- TABELA DE TURNOS -->
       <div class="section">
-        <div class="section-header"><h3>💰 Fechamento de Caixa</h3></div>
+        <div class="section-header">
+          <h3>🕐 Histórico de Turnos / Fechamentos</h3>
+          <span class="badge azul" id="badge-total-turnos">0 turnos</span>
+        </div>
         <div class="section-body no-pad">
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Hora</th><th>Venda #</th><th>Itens</th><th>Pagamento</th><th>Desconto</th><th>Total</th></tr></thead>
-              <tbody id="tabela-caixa"></tbody>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Colaborador</th>
+                  <th>Abertura</th>
+                  <th>Fechamento</th>
+                  <th>Duração</th>
+                  <th>Vendas</th>
+                  <th>Dinheiro</th>
+                  <th>PIX</th>
+                  <th>Cartão</th>
+                  <th>Total</th>
+                  <th>Diferença</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tabela-turnos"></tbody>
             </table>
           </div>
         </div>
+        <!-- PAGINAÇÃO -->
+        <div style="padding:16px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <span style="font-size:0.82rem;color:var(--texto-dim)" id="pag-info-turnos">Página 1</span>
+          <div style="display:flex;gap:8px" id="pag-controles-turnos"></div>
+        </div>
       </div>
+
+      <!-- DETALHE DO TURNO (modal) -->
     </div>
 
     <!-- ====== SETUP ====== -->
@@ -974,6 +1016,17 @@ textarea { resize: vertical; min-height: 70px; }
   </div>
 </div>
 
+<!-- MODAL DETALHES TURNO -->
+<div class="modal-overlay" id="modal-turno-det">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-header">
+      <h3 id="turno-det-title">Detalhes do Turno</h3>
+      <button class="modal-close" onclick="fecharModal('modal-turno-det')">✕</button>
+    </div>
+    <div class="modal-body" id="turno-det-body"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1021,6 +1074,35 @@ CREATE TABLE IF NOT EXISTS public.itens_venda (
 
 -- Adicionar coluna data_validade se já existir a tabela:
 -- ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS data_validade DATE;
+
+CREATE TABLE IF NOT EXISTS public.turnos_caixa (
+  id BIGSERIAL PRIMARY KEY,
+  colaborador TEXT NOT NULL,
+  abertura TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  fechamento TIMESTAMPTZ,
+  status TEXT DEFAULT 'aberto',
+  valor_abertura DECIMAL(10,2) DEFAULT 0,
+  valor_fechamento DECIMAL(10,2),
+  total_vendido DECIMAL(10,2) DEFAULT 0,
+  qtd_vendas INTEGER DEFAULT 0,
+  total_dinheiro DECIMAL(10,2) DEFAULT 0,
+  total_pix DECIMAL(10,2) DEFAULT 0,
+  total_debito DECIMAL(10,2) DEFAULT 0,
+  total_credito DECIMAL(10,2) DEFAULT 0,
+  diferenca_caixa DECIMAL(10,2),
+  duracao_minutos INTEGER,
+  observacao_abertura TEXT,
+  observacao_fechamento TEXT
+);
+
+ALTER TABLE public.turnos_caixa ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='turnos_caixa' AND policyname='public_all_turnos') THEN
+    CREATE POLICY "public_all_turnos" ON public.turnos_caixa FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+END $$;
 
 ALTER TABLE public.produtos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vendas ENABLE ROW LEVEL SECURITY;
@@ -1155,7 +1237,17 @@ function carregarPagina(p) {
   if (p === 'produtos') { carregarProdutos(); carregarCategorias(); }
   if (p === 'estoque') carregarEstoque();
   if (p === 'validades') carregarValidades();
-  if (p === 'caixa') { document.getElementById('caixa-data').value = hoje(); carregarCaixa(); }
+  if (p === 'caixa') {
+    // Definir filtro padrão: últimos 30 dias
+    const ini = document.getElementById('filtro-turno-ini');
+    const fim = document.getElementById('filtro-turno-fim');
+    if (!ini.value) {
+      const d30 = new Date(); d30.setDate(d30.getDate() - 30);
+      ini.value = d30.toISOString().split('T')[0];
+    }
+    if (!fim.value) fim.value = hoje();
+    carregarTurnos();
+  }
 }
 
 function recarregarPagina() { carregarPagina(paginaAtual); }
@@ -1636,40 +1728,221 @@ async function exportarValidades() {
   } catch(e) { toast('Erro ao exportar', true); }
 }
 
-// === CAIXA ===
-async function carregarCaixa() {
-  const data = document.getElementById('caixa-data').value;
+// === TURNOS DE CAIXA ===
+let turnosPaginaAtual = 1;
+const TURNOS_POR_PAGINA = 15;
+let turnosDados = [];
+
+async function carregarTurnos() {
+  const ini = document.getElementById('filtro-turno-ini').value;
+  const fim = document.getElementById('filtro-turno-fim').value;
+  const colab = document.getElementById('filtro-turno-colab').value.trim().toLowerCase();
+  const status = document.getElementById('filtro-turno-status').value;
+
+  const tbody = document.getElementById('tabela-turnos');
+  tbody.innerHTML = '<tr><td colspan="13"><div class="loader-full"><div class="spinner"></div> Carregando...</div></td></tr>';
+
   try {
-    const vendas = await sbFetch(`vendas?criado_em=gte.${data}T00:00:00&criado_em=lte.${data}T23:59:59&order=criado_em.desc&select=id,criado_em,total_itens,metodo_pagamento,desconto,total`);
-    const totais = { dinheiro:0, pix:0, debito:0, credito:0 };
-    vendas.forEach(v => { if (totais[v.metodo_pagamento] !== undefined) totais[v.metodo_pagamento] += parseFloat(v.total); });
-    document.getElementById('c-dinheiro').textContent = fmt(totais.dinheiro);
-    document.getElementById('c-pix').textContent = fmt(totais.pix);
-    document.getElementById('c-debito').textContent = fmt(totais.debito);
-    document.getElementById('c-credito').textContent = fmt(totais.credito);
-    const tbody = document.getElementById('tabela-caixa');
-    if (!vendas.length) { tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="icon">💰</div><p>Nenhuma venda nesta data</p></div></td></tr>'; return; }
-    tbody.innerHTML = vendas.map(v => `<tr>
-      <td class="mono">${new Date(v.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</td>
-      <td class="mono">#${v.id}</td>
-      <td>${v.total_itens} itens</td>
-      <td><span class="badge azul">${(v.metodo_pagamento||'—').toUpperCase()}</span></td>
-      <td class="mono" style="color:var(--amarelo)">- ${fmt(v.desconto)}</td>
-      <td class="mono" style="color:var(--verde);font-weight:700">${fmt(v.total)}</td>
-    </tr>`).join('');
-  } catch(e) { toast('Erro ao carregar caixa: ' + e.message, true); }
+    let q = 'turnos_caixa?order=abertura.desc';
+    if (ini) q += `&abertura=gte.${ini}T00:00:00`;
+    if (fim) q += `&abertura=lte.${fim}T23:59:59`;
+    if (status) q += `&status=eq.${status}`;
+    
+    let turnos = await sbFetch(q);
+
+    // Filtro colaborador (client-side)
+    if (colab) turnos = turnos.filter(t => (t.colaborador||'').toLowerCase().includes(colab));
+
+    turnosDados = turnos;
+
+    // Cards de resumo
+    const hoje = new Date().toISOString().split('T')[0];
+    const turnosHoje = turnos.filter(t => t.abertura && t.abertura.startsWith(hoje));
+    const aberto = turnos.find(t => t.status === 'aberto');
+    const totalHoje = turnosHoje.reduce((s, t) => s + (parseFloat(t.total_vendido) || 0), 0);
+    const turnosFechHoje = turnosHoje.filter(t => t.status === 'fechado');
+    const mediaHoje = turnosFechHoje.length ? totalHoje / turnosFechHoje.length : 0;
+
+    document.getElementById('ct-hoje').textContent = turnosHoje.length;
+    document.getElementById('ct-hoje-sub').textContent = `${turnosHoje.filter(t=>t.status==='fechado').length} fechados hoje`;
+    document.getElementById('ct-total-hoje').textContent = fmt(totalHoje);
+    document.getElementById('ct-total-hoje-sub').textContent = `${turnosFechHoje.length} turno(s) fechados`;
+    document.getElementById('ct-media').textContent = fmt(mediaHoje);
+
+    const alertaEl = document.getElementById('alerta-turno-aberto');
+    if (aberto) {
+      const hr = new Date(aberto.abertura).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+      document.getElementById('ct-aberto').textContent = aberto.colaborador || '—';
+      document.getElementById('ct-aberto-sub').textContent = `desde ${hr}`;
+      alertaEl.style.display = 'block';
+      alertaEl.innerHTML = `<div class="alert-banner amarelo">⚠️ Turno em aberto: <strong>${aberto.colaborador}</strong> desde ${hr} — aguardando fechamento no PDV.</div>`;
+    } else {
+      document.getElementById('ct-aberto').textContent = '—';
+      document.getElementById('ct-aberto-sub').textContent = 'nenhum turno ativo';
+      alertaEl.style.display = 'none';
+    }
+
+    renderTurnosPaginado();
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="13"><div class="empty"><div class="icon">⚠️</div><p>Erro: ${e.message}</p></div></td></tr>`;
+    toast('Erro ao carregar turnos: ' + e.message, true);
+  }
 }
 
-async function exportarCaixa() {
-  const data = document.getElementById('caixa-data').value;
+function renderTurnosPaginado() {
+  const total = turnosDados.length;
+  const totalPags = Math.ceil(total / TURNOS_POR_PAGINA) || 1;
+  if (turnosPaginaAtual > totalPags) turnosPaginaAtual = 1;
+
+  const inicio = (turnosPaginaAtual - 1) * TURNOS_POR_PAGINA;
+  const pagina = turnosDados.slice(inicio, inicio + TURNOS_POR_PAGINA);
+
+  document.getElementById('badge-total-turnos').textContent = `${total} turno${total !== 1 ? 's' : ''}`;
+  document.getElementById('pag-info-turnos').textContent = `Página ${turnosPaginaAtual} de ${totalPags} · ${total} registros`;
+
+  const tbody = document.getElementById('tabela-turnos');
+  if (!pagina.length) {
+    tbody.innerHTML = '<tr><td colspan="13"><div class="empty"><div class="icon">🕐</div><p>Nenhum turno encontrado</p></div></td></tr>';
+  } else {
+    tbody.innerHTML = pagina.map(t => {
+      const abertura = t.abertura ? new Date(t.abertura) : null;
+      const fechamento = t.fechamento ? new Date(t.fechamento) : null;
+      const hrAb = abertura ? abertura.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '—';
+      const dtAb = abertura ? abertura.toLocaleDateString('pt-BR') : '—';
+      const hrFch = fechamento ? fechamento.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '—';
+      const durMin = t.duracao_minutos;
+      const durStr = durMin != null ? (durMin >= 60 ? `${Math.floor(durMin/60)}h${durMin%60>0?durMin%60+'m':''}` : `${durMin}min`) : '—';
+      const dif = t.diferenca_caixa !== null && t.diferenca_caixa !== undefined ? parseFloat(t.diferenca_caixa) : null;
+      const difStr = dif !== null ? `<span style="color:${dif >= 0 ? 'var(--verde)' : 'var(--vermelho)'};font-weight:700">${dif >= 0 ? '+' : ''}${fmt(dif)}</span>` : '<span style="color:var(--texto-dim)">—</span>';
+      const badgeSt = t.status === 'aberto'
+        ? `<span class="badge amarelo">🟡 Aberto</span>`
+        : `<span class="badge verde">✅ Fechado</span>`;
+      const cartao = (parseFloat(t.total_debito)||0) + (parseFloat(t.total_credito)||0);
+
+      return `<tr style="${t.status==='aberto'?'background:rgba(217,119,6,0.04)':''}">
+        <td class="mono" style="color:var(--texto-dim);font-size:0.78rem">#${t.id}</td>
+        <td><strong>${t.colaborador || '—'}</strong></td>
+        <td class="mono" style="font-size:0.8rem">${dtAb}<br><span style="color:var(--texto-dim)">${hrAb}</span></td>
+        <td class="mono" style="font-size:0.8rem">${t.status==='fechado' ? hrFch : '<span style="color:var(--amarelo)">Em aberto</span>'}</td>
+        <td class="mono" style="font-size:0.82rem">${durStr}</td>
+        <td class="mono">${t.qtd_vendas || 0}</td>
+        <td class="mono" style="font-size:0.82rem">${fmt(t.total_dinheiro||0)}</td>
+        <td class="mono" style="font-size:0.82rem">${fmt(t.total_pix||0)}</td>
+        <td class="mono" style="font-size:0.82rem">${fmt(cartao)}</td>
+        <td class="mono" style="color:var(--verde);font-weight:700">${fmt(t.total_vendido||0)}</td>
+        <td>${difStr}</td>
+        <td>${badgeSt}</td>
+        <td>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-secondary" onclick="verDetalhesTurno(${t.id})" title="Ver detalhes">🔍</button>
+            <button class="btn btn-sm btn-danger" onclick="excluirTurno(${t.id},'${(t.colaborador||'').replace(/'/g,'')}')" title="Excluir">🗑</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Controles de paginação
+  const ctrl = document.getElementById('pag-controles-turnos');
+  const totalPagsFinal = Math.ceil(turnosDados.length / TURNOS_POR_PAGINA) || 1;
+  let btns = '';
+  btns += `<button class="btn btn-sm btn-secondary" ${turnosPaginaAtual <= 1 ? 'disabled' : ''} onclick="mudarPaginaTurnos(${turnosPaginaAtual-1})">‹ Anterior</button>`;
+  
+  // Páginas numeradas
+  const maxBtns = 5;
+  let pIni = Math.max(1, turnosPaginaAtual - 2);
+  let pFim = Math.min(totalPagsFinal, pIni + maxBtns - 1);
+  if (pFim - pIni < maxBtns - 1) pIni = Math.max(1, pFim - maxBtns + 1);
+  
+  for (let p = pIni; p <= pFim; p++) {
+    btns += `<button class="btn btn-sm ${p === turnosPaginaAtual ? 'btn-primary' : 'btn-secondary'}" onclick="mudarPaginaTurnos(${p})">${p}</button>`;
+  }
+  btns += `<button class="btn btn-sm btn-secondary" ${turnosPaginaAtual >= totalPagsFinal ? 'disabled' : ''} onclick="mudarPaginaTurnos(${turnosPaginaAtual+1})">Próxima ›</button>`;
+  ctrl.innerHTML = btns;
+}
+
+function mudarPaginaTurnos(pag) {
+  turnosPaginaAtual = pag;
+  renderTurnosPaginado();
+  document.getElementById('page-caixa').scrollTop = 0;
+}
+
+async function verDetalhesTurno(id) {
+  const t = turnosDados.find(x => x.id === id);
+  if (!t) return;
+  
+  document.getElementById('turno-det-title').textContent = `Turno #${t.id} — ${t.colaborador}`;
+  const body = document.getElementById('turno-det-body');
+  
+  const abertura = t.abertura ? new Date(t.abertura) : null;
+  const fechamento = t.fechamento ? new Date(t.fechamento) : null;
+  const cartao = (parseFloat(t.total_debito)||0) + (parseFloat(t.total_credito)||0);
+  const dif = t.diferenca_caixa !== null && t.diferenca_caixa !== undefined ? parseFloat(t.diferenca_caixa) : null;
+
+  body.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div style="background:var(--surface2);border-radius:10px;padding:14px">
+        <div style="font-size:0.7rem;font-weight:700;color:var(--texto-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Abertura</div>
+        <div style="font-family:var(--mono);font-weight:700;color:var(--texto)">${abertura ? abertura.toLocaleString('pt-BR') : '—'}</div>
+        ${t.valor_abertura ? `<div style="font-size:0.82rem;color:var(--texto-mid);margin-top:4px">Caixa inicial: <strong>${fmt(t.valor_abertura)}</strong></div>` : ''}
+        ${t.observacao_abertura ? `<div style="font-size:0.8rem;color:var(--texto-dim);margin-top:6px;font-style:italic">"${t.observacao_abertura}"</div>` : ''}
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:14px">
+        <div style="font-size:0.7rem;font-weight:700;color:var(--texto-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Fechamento</div>
+        <div style="font-family:var(--mono);font-weight:700;color:${t.status==='fechado'?'var(--texto)':'var(--amarelo)'}">${fechamento ? fechamento.toLocaleString('pt-BR') : '⚠️ Em aberto'}</div>
+        ${t.valor_fechamento ? `<div style="font-size:0.82rem;color:var(--texto-mid);margin-top:4px">Caixa físico: <strong>${fmt(t.valor_fechamento)}</strong></div>` : ''}
+        ${t.observacao_fechamento ? `<div style="font-size:0.8rem;color:var(--texto-dim);margin-top:6px;font-style:italic">"${t.observacao_fechamento}"</div>` : ''}
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
+      <div style="background:var(--verde-light);border:1.5px solid #86efac;border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:0.7rem;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:0.5px">Total Vendido</div>
+        <div style="font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--verde);margin-top:4px">${fmt(t.total_vendido||0)}</div>
+      </div>
+      <div style="background:var(--azul-light);border:1.5px solid #93c5fd;border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:0.7rem;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:0.5px">Vendas</div>
+        <div style="font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--azul);margin-top:4px">${t.qtd_vendas || 0}</div>
+      </div>
+      <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:0.7rem;font-weight:700;color:var(--texto-dim);text-transform:uppercase;letter-spacing:0.5px">Duração</div>
+        <div style="font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--texto);margin-top:4px">${t.duracao_minutos != null ? (t.duracao_minutos >= 60 ? Math.floor(t.duracao_minutos/60)+'h '+(t.duracao_minutos%60)+'min' : t.duracao_minutos+'min') : '—'}</div>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--texto-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Por forma de pagamento</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--surface2);border-radius:9px"><span style="font-size:0.88rem;font-weight:600;color:var(--texto-mid)">💵 Dinheiro</span><span style="font-family:var(--mono);font-weight:700">${fmt(t.total_dinheiro||0)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--surface2);border-radius:9px"><span style="font-size:0.88rem;font-weight:600;color:var(--texto-mid)">📱 PIX</span><span style="font-family:var(--mono);font-weight:700">${fmt(t.total_pix||0)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--surface2);border-radius:9px"><span style="font-size:0.88rem;font-weight:600;color:var(--texto-mid)">💳 Débito</span><span style="font-family:var(--mono);font-weight:700">${fmt(t.total_debito||0)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--surface2);border-radius:9px"><span style="font-size:0.88rem;font-weight:600;color:var(--texto-mid)">💳 Crédito</span><span style="font-family:var(--mono);font-weight:700">${fmt(t.total_credito||0)}</span></div>
+        ${dif !== null ? `<div style="display:flex;justify-content:space-between;padding:10px 14px;border-radius:9px;background:${dif>=0?'var(--verde-light)':'var(--vermelho-light)'}"><span style="font-size:0.88rem;font-weight:700;color:${dif>=0?'var(--verde)':'var(--vermelho)'}">📊 Diferença de caixa</span><span style="font-family:var(--mono);font-weight:700;color:${dif>=0?'var(--verde)':'var(--vermelho)'}">${dif>=0?'+':''}${fmt(dif)}</span></div>` : ''}
+      </div>
+    </div>`;
+  
+  document.getElementById('modal-turno-det').classList.add('show');
+}
+
+async function excluirTurno(id, colaborador) {
+  if (!confirm(`Excluir o turno #${id} (${colaborador})? Esta ação não pode ser desfeita.`)) return;
   try {
-    const vendas = await sbFetch(`vendas?criado_em=gte.${data}T00:00:00&criado_em=lte.${data}T23:59:59&order=criado_em.desc`);
-    const csv = ['ID,Hora,Itens,Pagamento,Desconto,Total', ...vendas.map(v => {
-      const h = new Date(v.criado_em).toLocaleTimeString('pt-BR');
-      return `${v.id},${h},${v.total_itens},${v.metodo_pagamento},${v.desconto},${v.total}`;
+    await sbFetch(`turnos_caixa?id=eq.${id}`, { method: 'DELETE', prefer: 'return=minimal' });
+    turnosDados = turnosDados.filter(t => t.id !== id);
+    renderTurnosPaginado();
+    toast(`Turno #${id} excluído`);
+  } catch(e) {
+    toast('Erro ao excluir: ' + e.message, true);
+  }
+}
+
+function exportarTurnos() {
+  if (!turnosDados.length) { toast('Nenhum dado para exportar', true); return; }
+  const csv = ['#,Colaborador,Data,Abertura,Fechamento,Duração(min),Vendas,Dinheiro,PIX,Débito,Crédito,Total,Diferença,Status,Obs.Abertura,Obs.Fechamento',
+    ...turnosDados.map(t => {
+      const dtAb = t.abertura ? new Date(t.abertura).toLocaleString('pt-BR') : '';
+      const dtFch = t.fechamento ? new Date(t.fechamento).toLocaleString('pt-BR') : '';
+      return `${t.id},"${t.colaborador||''}","${dtAb}","","${dtFch}",${t.duracao_minutos||0},${t.qtd_vendas||0},${t.total_dinheiro||0},${t.total_pix||0},${t.total_debito||0},${t.total_credito||0},${t.total_vendido||0},${t.diferenca_caixa||0},${t.status},"${(t.observacao_abertura||'').replace(/"/g,'')}","${(t.observacao_fechamento||'').replace(/"/g,'')}"`;
     })].join('\n');
-    baixarArquivo(csv, `caixa_${data}.csv`, 'text/csv');
-  } catch(e) { toast('Erro ao exportar', true); }
+  baixarArquivo(csv, `turnos_caixa_${hoje()}.csv`, 'text/csv');
 }
 
 // === SETUP ===
